@@ -49,8 +49,22 @@ def init_mediapipe():
 hands = init_mediapipe()
 
 # --- KONFIGURASI WEBRTC (Agar koneksi stabil di Cloud) ---
+# --- KONFIGURASI WEBRTC (Agar koneksi stabil di Cloud) ---
 RTC_CONFIGURATION = RTCConfiguration(
-    {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
+    {"iceServers": [
+        # 1. STUN Server (Cadangan)
+        {"urls": ["stun:stun.l.google.com:19302"]},
+        
+        # 2. TURN Server (ExpressTurn milikmu untuk menembus Firewall)
+        {
+            "urls": [
+                "turn:free.expressturn.com:3478",
+                "turn:free.expressturn.com:3478?transport=tcp"
+            ],
+            "username": "000000002099492358",
+            "credential": "yHLU/Gv4hvsg9qyYTGbkgibM9iQ="
+        }
+    ]}
 )
 
 # --- CLASS UNTUK MEMPROSES VIDEO REAL-TIME ---
