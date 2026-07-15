@@ -42,6 +42,7 @@ Project-C adalah aplikasi web interaktif berbasis Streamlit yang memanfaatkan ka
 
 - File model MediaPipe akan diunduh secara otomatis saat aplikasi dijalankan jika belum tersedia.
 - Aplikasi ini membutuhkan koneksi internet untuk mengunduh model awal.
+- Live Demo : https://exchonsive-project-c.streamlit.app/
 
 ## Lisensi
 
