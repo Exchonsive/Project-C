@@ -2,180 +2,34 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Project-C", layout="wide")
+st.title("Project-C")
+st.write("Nyalakan kamera, angkat kedua tanganmu, dan lakukan gerakan 'Pinch' untuk membuka kotak filter")
 
 HAND_PORTAL_HTML = """
-<style>
-  * { box-sizing: border-box; }
-  .pc-wrap {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    max-width: 900px;
-    margin: 0 auto;
-  }
-  .pc-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 14px;
-    padding: 0 4px;
-  }
-  .pc-title {
-    color: #f1f5f9;
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    margin: 0;
-  }
-  .pc-subtitle {
-    color: #94a3b8;
-    font-size: 13.5px;
-    margin: 4px 0 0 0;
-  }
-  .pc-stage {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    border-radius: 18px;
-    overflow: hidden;
-    background: linear-gradient(135deg, #0f172a, #1e293b);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.06);
-    transition: box-shadow 0.3s ease;
-  }
-  .pc-stage.active {
-    box-shadow: 0 8px 30px rgba(0,0,0,0.35), 0 0 0 2px #22d3ee, 0 0 24px rgba(34,211,238,0.35);
-  }
-  #canvas {
-    width: 100%;
-    height: 100%;
-    display: block;
-    object-fit: contain;
-  }
-  .pc-pill {
-    position: absolute;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    padding: 6px 12px;
-    border-radius: 999px;
-    background: rgba(15, 23, 42, 0.65);
-    backdrop-filter: blur(6px);
-    color: #e2e8f0;
-    font-size: 12.5px;
-    font-weight: 500;
-    border: 1px solid rgba(255,255,255,0.08);
-  }
-  #status-pill { top: 12px; left: 12px; }
-  #filter-pill {
-    top: 12px; right: 12px;
-    color: #67e8f9;
-    opacity: 0;
-    transform: translateY(-4px);
-    transition: opacity 0.25s ease, transform 0.25s ease;
-  }
-  #filter-pill.show { opacity: 1; transform: translateY(0); }
-  .pc-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: #4ade80;
-    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.6);
-    animation: pc-pulse 1.6s infinite;
-    flex: none;
-  }
-  .pc-dot.active { background: #22d3ee; box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.6); }
-  @keyframes pc-pulse {
-    0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.5); }
-    70% { box-shadow: 0 0 0 7px rgba(74, 222, 128, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
-  }
-  .pc-hint {
-    position: absolute;
-    bottom: 12px; left: 50%;
-    transform: translateX(-50%);
-    color: #cbd5e1;
-    font-size: 12px;
-    background: rgba(15, 23, 42, 0.55);
-    padding: 5px 12px;
-    border-radius: 999px;
-    backdrop-filter: blur(6px);
-    border: 1px solid rgba(255,255,255,0.06);
-    white-space: nowrap;
-  }
-  .pc-loading {
-    position: absolute; inset: 0;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 12px;
-    color: #94a3b8;
-    font-size: 13px;
-    background: linear-gradient(135deg, #0f172a, #1e293b);
-  }
-  .pc-spinner {
-    width: 30px; height: 30px;
-    border-radius: 50%;
-    border: 3px solid rgba(148,163,184,0.25);
-    border-top-color: #22d3ee;
-    animation: pc-spin 0.8s linear infinite;
-  }
-  @keyframes pc-spin { to { transform: rotate(360deg); } }
-  .pc-error {
-    color: #fca5a5;
-    background: rgba(127,29,29,0.25);
-    border: 1px solid rgba(248,113,113,0.3);
-    padding: 8px 14px;
-    border-radius: 10px;
-    font-size: 13px;
-    max-width: 80%;
-    text-align: center;
-  }
-</style>
-
-<div class="pc-wrap">
-  <div class="pc-header">
-    <div>
-      <p class="pc-title">🖐️ Project-C</p>
-      <p class="pc-subtitle">Pinch dua tangan untuk buka kotak filter, pinch satu tangan untuk ganti filter</p>
-    </div>
-  </div>
-
-  <div class="pc-stage" id="stage">
-    <canvas id="canvas"></canvas>
-    <div class="pc-loading" id="loading">
-      <div class="pc-spinner"></div>
-      <span>Memuat model AI &amp; kamera...</span>
-    </div>
-    <div class="pc-pill" id="status-pill">
-      <span class="pc-dot" id="status-dot"></span>
-      <span id="status-text">Mencari tangan...</span>
-    </div>
-    <div class="pc-pill" id="filter-pill">✨ <span id="filter-text">Normal</span></div>
-    <div class="pc-hint" id="hint">Pastikan kedua tangan terlihat jelas di kamera</div>
+<div style="position:relative; width:100%; max-width:960px; margin:auto;">
+  <video id="video" autoplay playsinline muted style="display:none;"></video>
+  <canvas id="canvas" style="width:100%; border-radius:10px; background:#111;"></canvas>
+  <div id="status"
+       style="position:absolute; top:10px; left:10px; color:#0f0; font-family:monospace;
+              background:rgba(0,0,0,0.55); padding:4px 10px; border-radius:6px; font-size:13px;">
+    Memuat model AI...
   </div>
 </div>
 
 <script type="module">
 import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest";
 
+const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d", { willReadFrequently: true });
-const stage = document.getElementById("stage");
-const loadingEl = document.getElementById("loading");
-const statusDot = document.getElementById("status-dot");
-const statusText = document.getElementById("status-text");
-const filterPill = document.getElementById("filter-pill");
-const filterText = document.getElementById("filter-text");
-const hintEl = document.getElementById("hint");
-
-const video = document.createElement("video");
-video.autoplay = true;
-video.playsInline = true;
-video.muted = true;
-video.style.display = "none";
-stage.appendChild(video); // harus nempel di DOM biar browser konsisten decode frame-nya
+const statusEl = document.getElementById("status");
 
 const MODEL_URL =
   "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
 
 const FILTERS = ["Normal", "Invert", "B & W", "Sepia", "Warm HDR", "Neon Edge"];
 const PINCH_THRESHOLD = 0.055;
-const TARGET_W = 1280, TARGET_H = 720; // rasio internal 16:9
+const TARGET_W = 1280, TARGET_H = 720; // dipatok 16:9 biar konsisten & ga stretch
 
 let handLandmarker = null;
 let portalActive = false;
@@ -184,8 +38,7 @@ let cooldown = 0;
 
 function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
 
-// Menggambar video ke canvas dengan crop tengah (mirip object-fit: cover),
-// jadi video TIDAK pernah stretch walau resolusi kamera bukan 16:9.
+// crop tengah video ke rasio 16:9 (mirip object-fit: cover), jadi ga pernah gepeng
 function drawMirroredCover() {
   const vw = video.videoWidth, vh = video.videoHeight;
   if (!vw || !vh) return;
@@ -201,7 +54,6 @@ function drawMirroredCover() {
   ctx.scale(-1, 1);
   ctx.drawImage(video, sx, sy, sw, sh, -TARGET_W, 0, TARGET_W, TARGET_H);
   ctx.restore();
-  return { sx, sy, sw, sh };
 }
 
 function applyFilter(x, y, w, h, name) {
@@ -245,11 +97,6 @@ function applyFilter(x, y, w, h, name) {
   ctx.putImageData(roi, x, y);
 }
 
-function setStatus(text, active) {
-  statusText.textContent = text;
-  statusDot.classList.toggle("active", !!active);
-}
-
 async function init() {
   canvas.width = TARGET_W;
   canvas.height = TARGET_H;
@@ -271,10 +118,10 @@ async function init() {
     video.srcObject = stream;
     await video.play();
 
-    loadingEl.style.display = "none";
+    statusEl.textContent = "Mencari tangan...";
     requestAnimationFrame(loop);
   } catch (err) {
-    loadingEl.innerHTML = '<div class="pc-error">⚠️ ' + err.message + '</div>';
+    statusEl.textContent = "Error: " + err.message;
     console.error(err);
   }
 }
@@ -285,6 +132,7 @@ function loop() {
     drawMirroredCover();
 
     if (cooldown > 0) cooldown--;
+    let statusTxt = "Mencari tangan...";
 
     if (result.landmarks && result.landmarks.length === 2) {
       const [hand1, hand2] = result.landmarks;
@@ -311,29 +159,22 @@ function loop() {
 
         if (x2 - x1 > 15 && y2 - y1 > 15) {
           applyFilter(Math.round(x1), Math.round(y1), Math.round(x2 - x1), Math.round(y2 - y1), FILTERS[filterIdx]);
-          ctx.strokeStyle = "#22d3ee";
-          ctx.lineWidth = 2.5;
+          ctx.strokeStyle = "#ffff00";
+          ctx.lineWidth = 2;
           ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+          ctx.fillStyle = "#ffff00";
+          ctx.font = "14px monospace";
+          ctx.fillText("Filter: " + FILTERS[filterIdx], x1, y1 - 8);
         }
-        setStatus("Pinch 1 tangan untuk ganti filter", true);
-        filterText.textContent = FILTERS[filterIdx];
-        filterPill.classList.add("show");
-        hintEl.style.display = "none";
-        stage.classList.add("active");
+        statusTxt = "Pinch 1 tangan untuk ganti filter";
       } else {
-        setStatus("Pinch 2 tangan untuk buka kotak filter", false);
-        filterPill.classList.remove("show");
-        stage.classList.remove("active");
+        statusTxt = "Pinch 2 tangan untuk buka kotak filter";
       }
     } else if (result.landmarks && result.landmarks.length === 1) {
-      setStatus("Butuh 2 tangan untuk membuka kotak filter", false);
-      filterPill.classList.remove("show");
-      stage.classList.remove("active");
-    } else {
-      setStatus("Mencari tangan...", false);
-      filterPill.classList.remove("show");
-      stage.classList.remove("active");
+      statusTxt = "Butuh 2 tangan untuk membuka kotak filter";
     }
+
+    statusEl.textContent = statusTxt;
   }
   requestAnimationFrame(loop);
 }
