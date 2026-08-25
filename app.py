@@ -167,6 +167,8 @@ const video = document.createElement("video");
 video.autoplay = true;
 video.playsInline = true;
 video.muted = true;
+video.style.display = "none";
+stage.appendChild(video); // harus nempel di DOM biar browser konsisten decode frame-nya
 
 const MODEL_URL =
   "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
