@@ -11,7 +11,7 @@ HAND_PORTAL_HTML = """
   <canvas id="canvas" style="width:100%; border-radius:10px; background:#111;"></canvas>
   <div id="status"
        style="position:absolute; top:10px; left:10px; color:#0f0; font-family:monospace;
-              background:rgba(0,0,0,0.55); padding:4px 10px; border-radius:6px; font-size:13px;">
+              background:rgba(0,0,0,0.55); padding:4px 10px; border-radius:6px; font-size:14px;">
     Memuat model AI...
   </div>
 </div>
@@ -28,32 +28,15 @@ const MODEL_URL =
   "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
 
 const FILTERS = ["Normal", "Invert", "B & W", "Sepia", "Warm HDR", "Neon Edge"];
-const PINCH_THRESHOLD = 0.055;
-const TARGET_W = 1280, TARGET_H = 720; // dipatok 16:9 biar konsisten & ga stretch
+const PINCH_THRESHOLD = 0.055; // jarak normalisasi (0-1). Makin kecil = pinch harus makin rapat.
 
 let handLandmarker = null;
 let portalActive = false;
 let filterIdx = 0;
 let cooldown = 0;
 
-function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
-
-// crop tengah video ke rasio 16:9 (mirip object-fit: cover), jadi ga pernah gepeng
-function drawMirroredCover() {
-  const vw = video.videoWidth, vh = video.videoHeight;
-  if (!vw || !vh) return;
-  const targetRatio = TARGET_W / TARGET_H;
-  const videoRatio = vw / vh;
-  let sx, sy, sw, sh;
-  if (videoRatio > targetRatio) {
-    sh = vh; sw = vh * targetRatio; sx = (vw - sw) / 2; sy = 0;
-  } else {
-    sw = vw; sh = vw / targetRatio; sx = 0; sy = (vh - sh) / 2;
-  }
-  ctx.save();
-  ctx.scale(-1, 1);
-  ctx.drawImage(video, sx, sy, sw, sh, -TARGET_W, 0, TARGET_W, TARGET_H);
-  ctx.restore();
+function dist(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
 function applyFilter(x, y, w, h, name) {
@@ -63,7 +46,13 @@ function applyFilter(x, y, w, h, name) {
 
   if (name === "Invert") {
     for (let i = 0; i < d.length; i += 4) {
-      d[i] = 255 - d[i]; d[i + 1] = 255 - d[i + 1]; d[i + 2] = 255 - d[i + 2];
+      d[i] = 255 - d[i];
+      d[i + 1] = 255 - d[i + 1];
+      d[i + 2] = 255 - d[i + 2];
+
+
+
+
     }
   } else if (name === "B & W") {
     for (let i = 0; i < d.length; i += 4) {
@@ -84,22 +73,25 @@ function applyFilter(x, y, w, h, name) {
       d[i + 2] = Math.min(255, d[i + 2] * 0.88);
     }
   } else if (name === "Neon Edge") {
+    // deteksi tepi sederhana (selisih terhadap piksel di kanan+bawah)
     const w4 = w * 4;
-    const src = new Uint8ClampedArray(d);
+    const src = new Uint8ClampedArray(d); // salinan sebelum ditimpa
     for (let y0 = 0; y0 < h - 1; y0++) {
       for (let x0 = 0; x0 < w - 1; x0++) {
         const i = y0 * w4 + x0 * 4;
-        const edge = Math.abs(src[i] - src[i + 4]) + Math.abs(src[i] - src[i + w4]) > 40 ? 255 : 0;
-        d[i] = edge; d[i + 1] = 0; d[i + 2] = edge;
+        const g0 = src[i], g1 = src[i + 4], g2 = src[i + w4];
+        const edge = Math.abs(g0 - g1) + Math.abs(g0 - g2) > 40 ? 255 : 0;
+        d[i] = edge;
+        d[i + 1] = 0;
+        d[i + 2] = edge;
       }
     }
   }
+
   ctx.putImageData(roi, x, y);
 }
 
 async function init() {
-  canvas.width = TARGET_W;
-  canvas.height = TARGET_H;
   try {
     const vision = await FilesetResolver.forVisionTasks(
       "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
@@ -111,10 +103,7 @@ async function init() {
       minHandDetectionConfidence: 0.7,
     });
 
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: TARGET_W }, height: { ideal: TARGET_H }, aspectRatio: { ideal: 16 / 9 } },
-      audio: false,
-    });
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
     video.srcObject = stream;
     await video.play();
 
@@ -128,8 +117,19 @@ async function init() {
 
 function loop() {
   if (video.readyState >= 2) {
+    if (canvas.width === 0) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+    }
+    const w = canvas.width, h = canvas.height;
+
     const result = handLandmarker.detectForVideo(video, performance.now());
-    drawMirroredCover();
+
+    // Gambar frame kamera (di-mirror biar berasa cermin)
+    ctx.save();
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, -w, 0, w, h);
+    ctx.restore();
 
     if (cooldown > 0) cooldown--;
     let statusTxt = "Mencari tangan...";
@@ -150,12 +150,13 @@ function loop() {
       }
 
       if (portalActive) {
-        const xs = [hand1[8].x, hand1[4].x, hand2[8].x, hand2[4].x].map((x) => (1 - x) * TARGET_W);
-        const ys = [hand1[8].y, hand1[4].y, hand2[8].y, hand2[4].y].map((y) => y * TARGET_H);
+        // koordinat di-mirror (1 - x) karena canvas digambar terbalik
+        const xs = [hand1[8].x, hand1[4].x, hand2[8].x, hand2[4].x].map((x) => (1 - x) * w);
+        const ys = [hand1[8].y, hand1[4].y, hand2[8].y, hand2[4].y].map((y) => y * h);
         const x1 = Math.max(0, Math.min(...xs));
-        const x2 = Math.min(TARGET_W, Math.max(...xs));
+        const x2 = Math.min(w, Math.max(...xs));
         const y1 = Math.max(0, Math.min(...ys));
-        const y2 = Math.min(TARGET_H, Math.max(...ys));
+        const y2 = Math.min(h, Math.max(...ys));
 
         if (x2 - x1 > 15 && y2 - y1 > 15) {
           applyFilter(Math.round(x1), Math.round(y1), Math.round(x2 - x1), Math.round(y2 - y1), FILTERS[filterIdx]);
@@ -163,7 +164,7 @@ function loop() {
           ctx.lineWidth = 2;
           ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
           ctx.fillStyle = "#ffff00";
-          ctx.font = "14px monospace";
+          ctx.font = "16px monospace";
           ctx.fillText("Filter: " + FILTERS[filterIdx], x1, y1 - 8);
         }
         statusTxt = "Pinch 1 tangan untuk ganti filter";
@@ -174,6 +175,9 @@ function loop() {
       statusTxt = "Butuh 2 tangan untuk membuka kotak filter";
     }
 
+    ctx.fillStyle = "#00ff00";
+    ctx.font = "18px monospace";
+    ctx.fillText(statusTxt, 20, 30);
     statusEl.textContent = statusTxt;
   }
   requestAnimationFrame(loop);
@@ -183,4 +187,4 @@ init();
 </script>
 """
 
-components.html(HAND_PORTAL_HTML, height=560, scrolling=False)
+components.html(HAND_PORTAL_HTML, height=640, scrolling=False)
