@@ -48,7 +48,6 @@ Project-C adalah aplikasi web interaktif berbasis Streamlit yang menggunakan kam
 ## Catatan
 
 - Kamera diakses langsung oleh JavaScript melalui browser; aplikasi tidak menggunakan `streamlit-webrtc`.
-- Model yang digunakan dimuat dari URL CDN MediaPipe saat halaman dibuka. File `hand_landmarker.task` yang ada di repositori tidak dipakai oleh jalur runtime saat ini.
 - Akses kamera browser biasanya memerlukan secure context (`localhost` atau HTTPS). Jika kamera tidak dapat diakses, periksa izin kamera dan pesan error pada halaman.
 - Aplikasi membutuhkan koneksi internet saat runtime untuk memuat library, WASM, dan model MediaPipe.
 - Live demo: https://exchonsive-project-c.streamlit.app/
